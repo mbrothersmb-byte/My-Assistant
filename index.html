@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Word & Email Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --ink: #1a1a2e; --paper: #f5f0e8; --cream: #faf7f2;
+    --accent: #c0392b; --accent2: #2980b9; --muted: #7f8c8d;
+    --border: #d4c5b0; --panel: #ffffff; --sidebar: #1a1a2e;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); margin: 0; min-height: 100vh; }
+  .sidebar { background: var(--sidebar); color: #e8e0d0; width: 220px; min-height: 100vh; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 20; border-right: 1px solid #2e2e4a; }
+  .sidebar-logo { padding: 24px 20px 16px; border-bottom: 1px solid #2e2e4a; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+  .mode-section { padding: 16px 12px 8px; }
+  .section-title { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #5a5a7a; padding: 0 8px; margin-bottom: 6px; font-weight: 500; }
+  .mode-btn { width: 100%; text-align: left; padding: 9px 12px; border-radius: 7px; font-size: 13px; color: #a0a0c0; cursor: pointer; border: none; background: transparent; margin-bottom: 2px; display: flex; align-items: center; gap: 9px; transition: all 0.15s; }
+  .mode-btn:hover { background: #252542; color: #e0dcd0; }
+  .mode-btn.active { background: var(--accent); color: #fff; font-weight: 500; }
+  .quick-section { padding: 12px; border-top: 1px solid #2e2e4a; }
+  .qbtn { width: 100%; text-align: left; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #8080a0; cursor: pointer; border: none; background: transparent; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .qbtn:hover { background: #252542; color: #d0ccc0; }
+  .settings-panel { margin-top: auto; border-top: 1px solid #2e2e4a; padding: 12px; }
+  .settings-toggle { width: 100%; text-align: left; background: transparent; border: none; color: #8080a0; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 6px; transition: all 0.15s; }
+  .settings-toggle:hover { background: #252542; color: #c0bca8; }
+  .settings-inner { display: none; padding-top: 8px; }
+  .settings-inner.open { display: block; }
+  .settings-inner label { display: block; font-size: 10px; color: #7a7a9a; margin-bottom: 3px; }
+  .settings-inner input { width: 100%; background: #252540; border: 1px solid #3a3a5a; color: #d0ccc0; border-radius: 5px; font-size: 11px; padding: 6px 8px; margin-bottom: 8px; font-family: inherit; outline: none; }
+  .save-btn { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 5px; font-size: 11px; cursor: pointer; width: 100%; font-weight: 500; }
+  .main-wrap { margin-left: 220px; min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { background: var(--cream); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .workspace { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: calc(100vh - 57px); }
+  .input-panel { background: var(--cream); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .panel-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  textarea { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 13.5px; line-height: 1.7; color: var(--ink); background: var(--panel); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 16px; resize: vertical; outline: none; transition: border-color 0.15s; }
+  textarea:focus { border-color: var(--accent2); }
+  #mainTextarea { min-height: 240px; }
+  #instructionBox { min-height: 90px; }
+  .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .run-btn { background: var(--accent); color: white; border: none; padding: 10px 22px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .run-btn:hover { background: #a93226; }
+  .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .sec-btn { background: transparent; color: var(--ink); border: 1.5px solid var(--border); padding: 9px 16px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .sec-btn:hover { background: var(--panel); border-color: var(--accent2); color: var(--accent2); }
+  .output-panel { background: var(--panel); padding: 24px; display: flex; flex-direction: column; }
+  .output-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .copy-btn { background: var(--accent2); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .copy-btn:hover { background: #1f6fa0; }
+  .copy-btn.copied { background: #27ae60; }
+  #outputArea { flex: 1; min-height: 500px; border: 1.5px solid var(--border); border-radius: 8px; overflow-y: auto; background: #fff; }
+  .placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #c8bfb0; text-align: center; padding: 40px; }
+  .placeholder .ph-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .placeholder p { font-size: 13px; line-height: 1.6; max-width: 260px; }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #27ae60; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 999; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .ai-badge { background: #1a2a1a; border: 1px solid #2a4a2a; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; font-size: 10px; color: #6aaa6a; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">✍️</div>
+    <div style="font-family:'Lora',serif;font-size:14px;font-weight:600;color:#f0ebe0;line-height:1.3;">Word & Email<br>Assistant</div>
+    <div style="font-size:10px;color:#7f7f9f;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">by Claude AI</div>
+  </div>
+
+  <div class="mode-section">
+    <div class="section-title">Mode</div>
+    <button class="mode-btn active" onclick="setMode('document')" id="btn-document"><span>📄</span> Document Mode</button>
+    <button class="mode-btn" onclick="setMode('thunderbird')" id="btn-thunderbird"><span>📧</span> Thunderbird Email</button>
+    <button class="mode-btn" onclick="setMode('tutor')" id="btn-tutor"><span>🎓</span> MS Word Tutor</button>
+  </div>
+
+  <div class="quick-section">
+    <div class="section-title">Quick Tools</div>
+    <button class="qbtn" onclick="quickAction('fix_grammar')"><span>✏️</span> Fix Grammar</button>
+    <button class="qbtn" onclick="quickAction('formal_tone')"><span>🎩</span> Formal Tone</button>
+    <button class="qbtn" onclick="quickAction('polite_tone')"><span>🙏</span> Polite Tone</button>
+    <button class="qbtn" onclick="quickAction('convert_table')"><span>📊</span> Convert to Table</button>
+    <button class="qbtn" onclick="clearFormatting()"><span>🧹</span> Clear Formatting</button>
+  </div>
+
+  <div class="settings-panel">
+    <button class="settings-toggle" onclick="toggleSettings()">
+      <span>⚙️ Signature Settings</span>
+      <span id="settings-arrow">▾</span>
+    </button>
+    <div class="settings-inner" id="settingsInner">
+      <div class="ai-badge">✅ AI Ready — Auto Powered</div>
+      <label>Your Name</label>
+      <input type="text" id="sigName" placeholder="e.g. Rajesh Kumar"/>
+      <label>Designation</label>
+      <input type="text" id="sigDesig" placeholder="e.g. Senior Manager"/>
+      <label>Department / Company</label>
+      <input type="text" id="sigDept" placeholder="e.g. HR Dept, ABC Ltd."/>
+      <label>Phone (optional)</label>
+      <input type="text" id="sigPhone" placeholder="e.g. +91 98765 43210"/>
+      <button class="save-btn" onclick="saveSignature()">💾 Save Signature</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div style="font-family:'Lora',serif;font-size:16px;font-weight:600;" id="modeName">
+      Document Mode <span style="background:var(--accent);color:white;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px;font-family:'DM Sans',sans-serif;font-weight:500;text-transform:uppercase;">Letter / Report</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);">📌 Text paste karein + instruction likhein → <strong>Run</strong> dabayein</div>
+  </div>
+
+  <div class="workspace">
+    <div class="input-panel">
+      <div>
+        <div class="panel-label">📝 Input Text / Paragraph</div>
+        <textarea id="mainTextarea" placeholder="Yahan apna text paste karein...
+
+Example:
+- Koi letter likhna ho
+- Email body paste karein
+- Data jo table mein convert karni ho
+- Koi paragraph jo format karna ho"></textarea>
+      </div>
+      <div>
+        <div class="panel-label">💬 Instruction / Query</div>
+        <textarea id="instructionBox" placeholder="Example:
+• 'Isko formal resignation letter mein convert karo'
+• 'Tone aur polite banao, HR ko bhejni hai'
+• 'How do I add page numbers in MS Word?'"></textarea>
+      </div>
+      <div class="action-row">
+        <button class="run-btn" id="runBtn" onclick="runAI()">
+          <span id="runBtnText">▶ Run Assistant</span>
+        </button>
+        <button class="sec-btn" onclick="clearAll()">🗑️ Clear All</button>
+        <button class="sec-btn" onclick="copyRaw()">📋 Copy Input</button>
+      </div>
+    </div>
+
+    <div class="output-panel">
+      <div class="output-topbar">
+        <div class="panel-label" style="margin:0;">📤 Output Preview</div>
+        <div style="display:flex;gap:8px;">
+          <button class="sec-btn" id="htmlViewBtn" onclick="toggleHtmlView()" style="font-size:11px;padding:6px 12px;display:none;">&lt;/&gt; HTML View</button>
+          <button class="copy-btn" id="copyBtn" onclick="copyOutput()">📋 Copy Output</button>
+        </div>
+      </div>
+      <div id="outputArea">
+        <div class="placeholder">
+          <div class="ph-icon">✍️</div>
+          <p>Output yahan aayega.<br>Left side mein text paste karein, instruction likhein aur <strong>Run</strong> dabayein.</p>
+          <p style="margin-top:12px;font-size:11px;color:#d0c8c0;">✨ Powered by AI — No API Key Needed</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const OPENROUTER_KEY = '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';
+const OPENROUTER_MODELS = [
+  'google/gemma-3-27b-it:free',
+  'google/gemma-3-12b-it:free',
+  'mistralai/mistral-7b-instruct:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'qwen/qwen-2.5-7b-instruct:free'
+];
+
+const GEMINI_KEYS = [
+  'AIzaSyAV6jyWB52PHLMU1QFiXPtIBmHnolQ-XsY',
+  'AIzaSyDyws8Z9rtNzU-aB3d9_g1MjYFRpQC42_0'
+];
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentMode = 'document';
+let currentOutputHTML = '';
+let showingHTML = false;
+let signature = {};
+
+try {
+  signature = JSON.parse(localStorage.getItem('msw_signature') || '{}');
+  if (signature.name) document.getElementById('sigName').value = signature.name;
+  if (signature.desig) document.getElementById('sigDesig').value = signature.desig;
+  if (signature.dept) document.getElementById('sigDept').value = signature.dept;
+  if (signature.phone) document.getElementById('sigPhone').value = signature.phone;
+} catch(e) {}
+
+// ============================================================
+// MODE
+// ============================================================
+const modeConfig = {
+  document: { name: 'Document Mode', tag: 'Letter / Report', icon: '📄' },
+  thunderbird: { name: 'Thunderbird Email', tag: 'Email Layout', icon: '📧' },
+  tutor: { name: 'MS Word Tutor', tag: 'Hinglish Guide', icon: '🎓' }
+};
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + mode).classList.add('active');
+  const m = modeConfig[mode];
+  document.getElementById('modeName').innerHTML = `${m.name} <span style="background:var(--accent);color:white;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px;font-family:'DM Sans',sans-serif;font-weight:500;text-transform:uppercase;">${m.tag}</span>`;
+  setOutput(`<div class="placeholder"><div class="ph-icon">${m.icon}</div><p>Mode: <strong>${m.name}</strong><br><br>Text aur instruction daal ke Run karein.</p></div>`);
+  currentOutputHTML = '';
+  document.getElementById('htmlViewBtn').style.display = 'none';
+}
+
+// ============================================================
+// PROMPTS
+// ============================================================
+function getSigBlock() {
+  if (!signature.name) return '';
+  let s = `\n\nSignature:\nName: ${signature.name}`;
+  if (signature.desig) s += `\nDesignation: ${signature.desig}`;
+  if (signature.dept) s += `\nDepartment: ${signature.dept}`;
+  if (signature.phone) s += `\nPhone: ${signature.phone}`;
+  return s;
+}
+
+function getSystemPrompt() {
+  if (currentMode === 'document') {
+    return `You are a professional MS Word document formatter. Convert user text into a properly structured formal letter/document. Output ONLY valid HTML with inline styles that renders like a real Word document. Use font-family: 'Times New Roman', serif. Font-size 13px. Line-height 1.9. Wrap in: <div style="font-family:'Times New Roman',serif;font-size:13px;line-height:1.9;color:#1a1a1a;padding:40px 48px;max-width:680px;margin:0 auto;">. Structure: address block, date, recipient, subject (bold+underlined), salutation, body paragraphs (justified), closing, signature.${getSigBlock()}\nOutput ONLY the HTML. No markdown. No backticks.`;
+  }
+  if (currentMode === 'thunderbird') {
+    return `You are an expert HTML email developer. Convert content into a professional email using TABLE-BASED HTML layout with inline CSS only. Max width 600px. Arial/Helvetica font. Structure: header row (dark #2c3e50 background, white text), body (white, padding 28px 32px), footer (grey #f8f8f8).${getSigBlock()}\nOutput ONLY the raw HTML table. No markdown. No explanation.`;
+  }
+  if (currentMode === 'tutor') {
+    return `You are a friendly MS Word tutor explaining in Hinglish (Hindi+English mix). Give clear numbered step-by-step guides. Use icons: 🖱️=Click, 📂=Menu, ⌨️=Shortcut, 💡=Tip, ✅=Done, ⚠️=Warning. Format as HTML wrapped in <div style="padding:28px 32px;font-family:sans-serif;font-size:13.5px;line-height:1.75;">. Each step: <div style="display:flex;gap:12px;background:#fafaf8;border-left:4px solid #2980b9;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:10px;"><span style="font-size:20px;">[icon]</span><span><strong>Step X:</strong> [Hinglish text]</span></div>. Tips: <div style="background:#fffbf0;border:1px solid #f0d090;border-radius:6px;padding:10px 14px;font-size:12.5px;color:#7a5a10;margin-top:12px;">💡 [tip]</div>. Output ONLY HTML.`;
+  }
+}
+
+// ============================================================
+// MAIN AI CALL
+// ============================================================
+async function callAI(systemPrompt, userMessage) {
+  // Try OpenRouter first
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + OPENROUTER_KEY,
+          'HTTP-Referer': window.location.href,
+          'X-Title': 'Word & Email Assistant'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          max_tokens: 2048,
+          temperature: 0.7
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.choices && data.choices[0] && data.choices[0].message) {
+        const text = data.choices[0].message.content || '';
+        return text.replace(/```html|```/gi, '').trim();
+      }
+    } catch(e) {
+      console.log('OpenRouter model failed:', model, e.message);
+    }
+  }
+
+  // Fallback: Gemini
+  for (const key of GEMINI_KEYS) {
+    for (const model of GEMINI_MODELS) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: systemPrompt + '\n\nUSER REQUEST:\n' + userMessage }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.candidates && data.candidates[0]) {
+          const text = data.candidates[0].content.parts[0].text || '';
+          return text.replace(/```html|```/gi, '').trim();
+        }
+      } catch(e) {
+        console.log('Gemini failed:', model, e.message);
+      }
+    }
+  }
+  throw new Error('Koi bhi AI model respond nahi kar raha. Please thodi der baad try karein.');
+}
+
+// ============================================================
+// RUN AI
+// ============================================================
+async function runAI() {
+  const text = document.getElementById('mainTextarea').value.trim();
+  const instr = document.getElementById('instructionBox').value.trim();
+  const userMsg = [text && `Text:\n${text}`, instr && `Instruction: ${instr}`].filter(Boolean).join('\n\n') || 'Show me an example output.';
+
+  const btn = document.getElementById('runBtn');
+  const btnText = document.getElementById('runBtnText');
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> Processing…';
+  setOutput('<div style="padding:40px;text-align:center;color:#888;">⚙️ AI soch raha hai... please wait</div>');
+
+  try {
+    const result = await callAI(getSystemPrompt(), userMsg);
+    currentOutputHTML = result;
+    showingHTML = false;
+
+    if (currentMode === 'thunderbird') {
+      setOutput(`<div style="padding:20px;background:#f0f2f5;"><div style="font-size:11px;color:#888;margin-bottom:8px;text-align:center;">📧 Email Preview</div>${result}</div>`);
+    } else {
+      setOutput(result);
+    }
+    document.getElementById('htmlViewBtn').style.display = 'inline-flex';
+  } catch(err) {
+    setOutput(`<div style="padding:24px;color:#c0392b;font-size:13px;"><strong>❌ Error:</strong> ${err.message}</div>`);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '▶ Run Assistant';
+  }
+}
+
+// ============================================================
+// QUICK ACTIONS
+// ============================================================
+async function quickAction(type) {
+  const text = document.getElementById('mainTextarea').value.trim();
+  if (!text) { showToast('⚠️ Pehle input mein text paste karein!'); return; }
+
+  const prompts = {
+    fix_grammar: `Fix all grammar, spelling, and punctuation errors. Return only corrected text as plain HTML paragraphs. No explanation.\n\nText:\n${text}`,
+    formal_tone: `Rewrite in a very formal, professional tone for official correspondence. Return as clean HTML paragraphs only.\n\nText:\n${text}`,
+    polite_tone: `Rewrite in a warm, respectful, polite tone suitable for seniors or clients. Return as clean HTML paragraphs.\n\nText:\n${text}`,
+    convert_table: `Convert this information into an HTML table. Inline styles: border-collapse:collapse; width:100%; header background #2c3e50 white text; alternating rows #fff and #f8f6f2; cells padding 9px 14px border 1px solid #e0d8d0. Return ONLY the <table> HTML.\n\nData:\n${text}`
+  };
+
+  const sys = 'You are a professional text editor. Output only clean HTML. No markdown. No explanation.';
+  showToast('⚙️ Processing…');
+
+  const btn = document.getElementById('runBtn');
+  const btnText = document.getElementById('runBtnText');
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> Processing…';
+  setOutput('<div style="padding:40px;text-align:center;color:#888;">⚙️ Processing...</div>');
+
+  try {
+    const result = await callAI(sys, prompts[type]);
+    currentOutputHTML = result;
+    if (type === 'convert_table') {
+      setOutput(`<div style="padding:24px;overflow-x:auto;">${result}</div>`);
+    } else {
+      setOutput(`<div style="padding:28px 32px;font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.75;">${result}</div>`);
+    }
+    document.getElementById('htmlViewBtn').style.display = 'inline-flex';
+    showToast('✅ Done!');
+  } catch(e) {
+    showToast('❌ Error: ' + e.message);
+    setOutput(`<div style="padding:24px;color:#c0392b;">❌ ${e.message}</div>`);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '▶ Run Assistant';
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setOutput(html) {
+  document.getElementById('outputArea').innerHTML = html;
+}
+
+function clearAll() {
+  document.getElementById('mainTextarea').value = '';
+  document.getElementById('instructionBox').value = '';
+  currentOutputHTML = '';
+  showingHTML = false;
+  document.getElementById('htmlViewBtn').style.display = 'none';
+  setOutput('<div class="placeholder"><div class="ph-icon">✍️</div><p>Output yahan aayega.</p></div>');
+}
+
+function clearFormatting() {
+  const ta = document.getElementById('mainTextarea');
+  ta.value = ta.value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  showToast('🧹 Formatting cleared!');
+}
+
+function copyOutput() {
+  if (!currentOutputHTML) { showToast('⚠️ Kuch output nahi hai.'); return; }
+  const text = currentMode === 'thunderbird' ? currentOutputHTML : currentOutputHTML.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copy Output'; btn.classList.remove('copied'); }, 2500);
+    showToast('✅ Copy ho gaya!');
+  });
+}
+
+function copyRaw() {
+  const text = document.getElementById('mainTextarea').value;
+  if (!text) { showToast('⚠️ Input empty hai.'); return; }
+  navigator.clipboard.writeText(text).then(() => showToast('📋 Input copy ho gaya!'));
+}
+
+function toggleHtmlView() {
+  if (!currentOutputHTML) return;
+  showingHTML = !showingHTML;
+  const btn = document.getElementById('htmlViewBtn');
+  if (showingHTML) {
+    btn.textContent = '👁️ Preview';
+    setOutput(`<pre style="padding:16px;font-family:monospace;font-size:11px;color:#4a4a6a;white-space:pre-wrap;word-break:break-all;background:#f8f6f2;margin:0;">${currentOutputHTML.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`);
+  } else {
+    btn.textContent = '</> HTML View';
+    if (currentMode === 'thunderbird') {
+      setOutput(`<div style="padding:20px;background:#f0f2f5;">${currentOutputHTML}</div>`);
+    } else {
+      setOutput(currentOutputHTML);
+    }
+  }
+}
+
+function toggleSettings() {
+  const inner = document.getElementById('settingsInner');
+  const arrow = document.getElementById('settings-arrow');
+  inner.classList.toggle('open');
+  arrow.textContent = inner.classList.contains('open') ? '▴' : '▾';
+}
+
+function saveSignature() {
+  signature = {
+    name: document.getElementById('sigName').value.trim(),
+    desig: document.getElementById('sigDesig').value.trim(),
+    dept: document.getElementById('sigDept').value.trim(),
+    phone: document.getElementById('sigPhone').value.trim(),
+  };
+  localStorage.setItem('msw_signature', JSON.stringify(signature));
+  showToast('✅ Signature saved!');
+  toggleSettings();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// Ctrl+Enter shortcut
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') runAI();
+});
+</script>
+</body>
+</html>
